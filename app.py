@@ -12,58 +12,179 @@ from io import BytesIO
 
 # Page configuration
 st.set_page_config(
-    page_title="Speech-to-Text Transcription",
+    page_title="Speech-to-Text",
     page_icon="🎤",
-    layout="wide"
+    layout="centered",
+    initial_sidebar_state="collapsed"
 )
 
-# Custom CSS for better styling
+# Custom CSS for modern, clean design
 st.markdown("""
     <style>
+    /* Import Google Font */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    
+    /* Global Styles */
+    * {
+        font-family: 'Inter', sans-serif;
+    }
+    
+    /* Hide Streamlit branding */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    
+    /* Main container */
+    .main .block-container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+        max-width: 800px;
+    }
+    
+    /* Header */
     .main-header {
-        font-size: 3rem;
-        color: #1f77b4;
         text-align: center;
+        padding: 2rem 0 3rem 0;
+    }
+    
+    .main-header h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0.5rem;
+    }
+    
+    .main-header p {
+        color: #8b8b8b;
+        font-size: 1.1rem;
+    }
+    
+    /* Upload section */
+    .upload-section {
+        background: white;
+        padding: 2rem;
+        border-radius: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.07);
         margin-bottom: 2rem;
     }
+    
+    /* Language selector */
+    .stSelectbox {
+        margin-bottom: 1.5rem;
+    }
+    
+    /* File uploader */
+    [data-testid="stFileUploader"] {
+        background: #f8f9fa;
+        padding: 2rem;
+        border-radius: 15px;
+        border: 2px dashed #d0d0d0;
+    }
+    
+    [data-testid="stFileUploader"]:hover {
+        border-color: #667eea;
+        background: #f5f7ff;
+    }
+    
+    /* Buttons */
     .stButton>button {
         width: 100%;
-        background-color: #1f77b4;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
-        font-weight: bold;
-        padding: 0.5rem;
+        font-weight: 600;
+        font-size: 1.1rem;
+        padding: 0.75rem 2rem;
+        border-radius: 12px;
+        border: none;
+        transition: all 0.3s ease;
+        margin-top: 1rem;
     }
-    .success-box {
-        padding: 1rem;
-        border-radius: 0.5rem;
-        background-color: #d4edda;
-        border: 1px solid #c3e6cb;
+    
+    .stButton>button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 15px rgba(102, 126, 234, 0.4);
+    }
+    
+    /* Audio player */
+    audio {
+        width: 100%;
+        margin: 1rem 0;
+        border-radius: 10px;
+    }
+    
+    /* Results section */
+    .result-box {
+        background: #f8f9fa;
+        padding: 2rem;
+        border-radius: 15px;
+        margin-top: 2rem;
+    }
+    
+    /* Text area */
+    .stTextArea textarea {
+        border-radius: 12px;
+        border: 2px solid #e0e0e0;
+        font-size: 1rem;
+        line-height: 1.6;
+    }
+    
+    .stTextArea textarea:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    /* Metrics */
+    [data-testid="stMetricValue"] {
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+    
+    /* Info boxes */
+    .stAlert {
+        border-radius: 12px;
+        border-left: 4px solid #667eea;
+    }
+    
+    /* Download button */
+    .stDownloadButton>button {
+        background: white;
+        color: #667eea;
+        border: 2px solid #667eea;
+        font-weight: 600;
+    }
+    
+    .stDownloadButton>button:hover {
+        background: #667eea;
+        color: white;
+    }
+    
+    /* Success/Error messages */
+    .success-message {
+        background: #d4edda;
         color: #155724;
-    }
-    .error-box {
         padding: 1rem;
-        border-radius: 0.5rem;
-        background-color: #f8d7da;
-        border: 1px solid #f5c6cb;
+        border-radius: 10px;
+        margin: 1rem 0;
+        border-left: 4px solid #28a745;
+    }
+    
+    .error-message {
+        background: #f8d7da;
         color: #721c24;
+        padding: 1rem;
+        border-radius: 10px;
+        margin: 1rem 0;
+        border-left: 4px solid #dc3545;
     }
     </style>
 """, unsafe_allow_html=True)
 
 
 def convert_to_wav(audio_bytes, file_extension):
-    """
-    Convert audio bytes to WAV format
-    
-    Args:
-        audio_bytes: Audio file bytes
-        file_extension: Original file extension
-    
-    Returns:
-        WAV audio bytes
-    """
+    """Convert audio bytes to WAV format"""
     try:
-        # Load audio from bytes
         if file_extension == '.mp3':
             audio = AudioSegment.from_mp3(BytesIO(audio_bytes))
         elif file_extension == '.ogg':
@@ -77,50 +198,31 @@ def convert_to_wav(audio_bytes, file_extension):
         else:
             audio = AudioSegment.from_file(BytesIO(audio_bytes))
         
-        # Export to WAV
         wav_io = BytesIO()
         audio.export(wav_io, format='wav')
         wav_io.seek(0)
-        
         return wav_io.read()
-        
     except Exception as e:
         st.error(f"Error converting audio: {e}")
         return None
 
 
 def transcribe_audio(audio_bytes, language='en-US'):
-    """
-    Transcribe audio bytes to text
-    
-    Args:
-        audio_bytes: Audio file bytes (WAV format)
-        language: Language code
-    
-    Returns:
-        Transcribed text and confidence info
-    """
+    """Transcribe audio bytes to text"""
     recognizer = sr.Recognizer()
     recognizer.energy_threshold = 300
     recognizer.dynamic_energy_threshold = True
     
     try:
-        # Save to temporary file
         with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as tmp_file:
             tmp_file.write(audio_bytes)
             tmp_path = tmp_file.name
         
-        # Load and transcribe
         with sr.AudioFile(tmp_path) as source:
             audio_length = source.DURATION
-            
-            # Adjust for ambient noise
             recognizer.adjust_for_ambient_noise(source, duration=min(1.0, audio_length))
-            
-            # Record audio data
             audio_data = recognizer.record(source)
             
-            # Try transcription
             try:
                 text = recognizer.recognize_google(audio_data, language=language)
                 os.unlink(tmp_path)
@@ -130,9 +232,7 @@ def transcribe_audio(audio_bytes, language='en-US'):
                     'duration': audio_length,
                     'confidence': 'High'
                 }
-                
             except sr.UnknownValueError:
-                # Try with show_all for alternatives
                 try:
                     result = recognizer.recognize_google(audio_data, language=language, show_all=True)
                     os.unlink(tmp_path)
@@ -159,12 +259,6 @@ def transcribe_audio(audio_bytes, language='en-US'):
                         'error': 'Could not understand audio',
                         'duration': audio_length
                     }
-                    
-    except sr.RequestError as e:
-        return {
-            'success': False,
-            'error': f'API error: {e}'
-        }
     except Exception as e:
         return {
             'success': False,
@@ -174,167 +268,143 @@ def transcribe_audio(audio_bytes, language='en-US'):
 
 def main():
     # Header
-    st.markdown('<h1 class="main-header">🎤 Speech-to-Text Transcription</h1>', unsafe_allow_html=True)
-    st.markdown("---")
+    st.markdown("""
+        <div class="main-header">
+            <h1>🎤 Speech-to-Text</h1>
+            <p>Convert your audio files to text in seconds</p>
+        </div>
+    """, unsafe_allow_html=True)
     
-    # Sidebar for settings
-    with st.sidebar:
-        st.header("⚙️ Settings")
-        
-        st.subheader("Language Selection")
-        language_options = {
-            "English (US)": "en-US",
-            "English (UK)": "en-GB",
-            "Spanish": "es-ES",
-            "French": "fr-FR",
-            "German": "de-DE",
-            "Hindi": "hi-IN",
-            "Chinese": "zh-CN",
-            "Japanese": "ja-JP",
-            "Korean": "ko-KR",
-            "Portuguese": "pt-BR",
-            "Russian": "ru-RU",
-            "Italian": "it-IT"
-        }
-        
-        selected_language = st.selectbox(
-            "Select audio language:",
-            options=list(language_options.keys()),
-            index=0
-        )
-        language_code = language_options[selected_language]
-        
-        st.markdown("---")
-        st.subheader("ℹ️ Information")
-        st.info("""
-        **Supported formats:**
-        - MP3, WAV, OGG, FLAC, M4A
-        
-        **Tips for best results:**
-        - Use clear audio with minimal background noise
-        - Ensure speakers speak clearly
-        - Select the correct language
-        """)
-        
-        st.markdown("---")
-        st.subheader("📋 About")
-        st.write("This tool uses Google Speech Recognition API to convert speech to text.")
+    # Language selector
+    st.markdown("### 🌐 Select Language")
+    language_options = {
+        "English (US)": "en-US",
+        "English (UK)": "en-GB",
+        "Spanish": "es-ES",
+        "French": "fr-FR",
+        "German": "de-DE",
+        "Hindi": "hi-IN",
+        "Chinese": "zh-CN",
+        "Japanese": "ja-JP",
+        "Korean": "ko-KR",
+        "Portuguese": "pt-BR",
+        "Russian": "ru-RU",
+        "Italian": "it-IT"
+    }
     
-    # Main content area
-    col1, col2 = st.columns([1, 1])
+    selected_language = st.selectbox(
+        "Choose the language of your audio",
+        options=list(language_options.keys()),
+        index=0,
+        label_visibility="collapsed"
+    )
+    language_code = language_options[selected_language]
     
-    with col1:
-        st.subheader("📁 Upload Audio File")
-        uploaded_file = st.file_uploader(
-            "Choose an audio file",
-            type=['mp3', 'wav', 'ogg', 'flac', 'm4a'],
-            help="Upload an audio file to transcribe"
-        )
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # File upload section
+    st.markdown("### 📁 Upload Audio File")
+    uploaded_file = st.file_uploader(
+        "Choose an audio file (MP3, WAV, OGG, FLAC, M4A)",
+        type=['mp3', 'wav', 'ogg', 'flac', 'm4a'],
+        label_visibility="collapsed"
+    )
+    
+    if uploaded_file is not None:
+        # Display audio player
+        st.audio(uploaded_file, format=f'audio/{uploaded_file.name.split(".")[-1]}')
         
-        if uploaded_file is not None:
-            st.audio(uploaded_file, format=f'audio/{uploaded_file.name.split(".")[-1]}')
-            
-            col_a, col_b = st.columns([1, 1])
-            
-            with col_a:
-                st.write(f"**Filename:** {uploaded_file.name}")
-            with col_b:
-                st.write(f"**Size:** {uploaded_file.size / 1024:.2f} KB")
-            
-            if st.button("🎯 Transcribe Audio", key="transcribe_btn"):
-                with st.spinner("Processing audio..."):
-                    # Get file extension
-                    file_extension = os.path.splitext(uploaded_file.name)[1].lower()
+        # File info
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("File Name", uploaded_file.name.split('.')[0][:15] + '...' if len(uploaded_file.name) > 18 else uploaded_file.name.split('.')[0])
+        with col2:
+            st.metric("Size", f"{uploaded_file.size / 1024:.1f} KB")
+        with col3:
+            st.metric("Format", uploaded_file.name.split('.')[-1].upper())
+        
+        # Transcribe button
+        if st.button("🎯 Transcribe Audio", type="primary"):
+            with st.spinner("✨ Converting and transcribing your audio..."):
+                # Get file extension
+                file_extension = os.path.splitext(uploaded_file.name)[1].lower()
+                
+                # Read file bytes
+                audio_bytes = uploaded_file.read()
+                
+                # Convert to WAV if needed
+                if file_extension != '.wav':
+                    wav_bytes = convert_to_wav(audio_bytes, file_extension)
+                else:
+                    wav_bytes = audio_bytes
+                
+                if wav_bytes:
+                    result = transcribe_audio(wav_bytes, language_code)
                     
-                    # Read file bytes
-                    audio_bytes = uploaded_file.read()
-                    
-                    # Convert to WAV if needed
-                    if file_extension != '.wav':
-                        with st.spinner("Converting to WAV format..."):
-                            wav_bytes = convert_to_wav(audio_bytes, file_extension)
+                    # Display results
+                    if result['success']:
+                        st.markdown(f"""
+                            <div class="success-message">
+                                <strong>✅ Transcription Complete!</strong><br>
+                                Duration: {result['duration']:.1f}s | Confidence: {result['confidence']} | Language: {selected_language}
+                            </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # Transcription result
+                        st.markdown("### 📝 Transcription")
+                        transcription_text = st.text_area(
+                            "Edit if needed",
+                            value=result['text'],
+                            height=200,
+                            label_visibility="collapsed"
+                        )
+                        
+                        # Download button
+                        st.download_button(
+                            label="💾 Download as Text File",
+                            data=transcription_text,
+                            file_name="transcription.txt",
+                            mime="text/plain"
+                        )
                     else:
-                        wav_bytes = audio_bytes
-                    
-                    if wav_bytes:
-                        with st.spinner(f"Transcribing ({selected_language})..."):
-                            result = transcribe_audio(wav_bytes, language_code)
+                        st.markdown(f"""
+                            <div class="error-message">
+                                <strong>❌ Transcription Failed</strong><br>
+                                {result.get('error', 'Unknown error')}
+                            </div>
+                        """, unsafe_allow_html=True)
                         
-                        # Display results
-                        st.markdown("---")
+                        if 'duration' in result:
+                            st.info(f"📊 Audio duration: {result['duration']:.1f} seconds")
                         
-                        if result['success']:
-                            st.success("✅ Transcription Complete!")
-                            
-                            # Metadata
-                            col_i, col_ii, col_iii = st.columns(3)
-                            with col_i:
-                                st.metric("Duration", f"{result['duration']:.2f}s")
-                            with col_ii:
-                                st.metric("Language", selected_language)
-                            with col_iii:
-                                st.metric("Confidence", result['confidence'])
-                            
-                            # Transcription result
-                            st.subheader("📝 Transcription Result:")
-                            st.text_area(
-                                "Text Output",
-                                value=result['text'],
-                                height=200,
-                                key="transcription_output"
-                            )
-                            
-                            # Download button
-                            st.download_button(
-                                label="💾 Download Transcription",
-                                data=result['text'],
-                                file_name="transcription.txt",
-                                mime="text/plain"
-                            )
-                        else:
-                            st.error("❌ Transcription Failed")
-                            st.markdown(f'<div class="error-box">{result["error"]}</div>', unsafe_allow_html=True)
-                            
-                            if 'duration' in result:
-                                st.info(f"Audio duration: {result['duration']:.2f} seconds")
-                            
-                            st.warning("""
-                            **Possible reasons:**
+                        with st.expander("💡 Troubleshooting Tips"):
+                            st.markdown("""
+                            **Common issues:**
                             - Audio contains no clear speech
                             - Wrong language selected
-                            - Poor audio quality or too much background noise
-                            - Audio is a sound effect or music only
+                            - Poor audio quality or background noise
+                            - Audio file is corrupted
+                            
+                            **Try:**
+                            - Using a different audio file
+                            - Selecting the correct language
+                            - Recording in a quieter environment
                             """)
-    
-    with col2:
-        st.subheader("📊 Quick Stats")
+    else:
+        # Empty state
+        st.info("👆 Upload an audio file to get started")
         
-        # Create sample statistics
-        if uploaded_file:
-            st.success("✅ File uploaded successfully")
-            st.metric("Status", "Ready to transcribe")
-        else:
-            st.warning("⏳ Waiting for file upload")
-            st.metric("Status", "No file uploaded")
-        
-        st.markdown("---")
-        st.subheader("💡 Tips")
-        st.markdown("""
-        **For best results:**
-        - Use clear audio with minimal background noise
-        - Ensure speakers speak clearly
-        - Select the correct language
-        - Audio files should be under 200MB
-        - Supported formats: MP3, WAV, OGG, FLAC, M4A
-        """)
-    
-    # Footer
-    st.markdown("---")
-    st.markdown("""
-    <div style='text-align: center; color: gray;'>
-        <p>Made with ❤️ using Streamlit | Powered by Google Speech Recognition</p>
-    </div>
-    """, unsafe_allow_html=True)
+        with st.expander("ℹ️ Supported Formats & Tips"):
+            st.markdown("""
+            **Supported Audio Formats:**
+            - MP3, WAV, OGG, FLAC, M4A
+            
+            **For Best Results:**
+            - Use clear audio with minimal background noise
+            - Ensure speakers speak clearly and at moderate pace
+            - Keep file size under 200MB
+            - Select the correct language before transcribing
+            """)
 
 
 if __name__ == "__main__":
