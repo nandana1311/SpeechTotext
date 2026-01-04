@@ -309,86 +309,163 @@ def main():
     with col2:
         st.subheader("🎙️ Record Audio")
         
-        # Browser-based audio recording
-        st.markdown("""
-        <div style="padding: 1rem; background-color: #1e1e1e; border-radius: 10px; margin-bottom: 1rem;">
-            <button id="startRecord" onclick="startRecording()" style="background-color: #ff4b4b; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; margin-right: 10px;">
-                🎙️ Start Recording
-            </button>
-            <button id="stopRecord" onclick="stopRecording()" disabled style="background-color: #666; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px;">
-                ⏹️ Stop Recording
-            </button>
-            <div id="recordingStatus" style="margin-top: 10px; color: #aaa;"></div>
-            <audio id="audioPlayback" controls style="width: 100%; margin-top: 10px; display: none;"></audio>
-        </div>
+        # Simple web-based recording using streamlit components
+        from streamlit.components.v1 import html
         
-        <script>
-        let mediaRecorder;
-        let audioChunks = [];
-        let recordingStartTime;
-        
-        async function startRecording() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream);
-                audioChunks = [];
-                recordingStartTime = Date.now();
+        audio_recorder_html = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {
+                    font-family: 'Source Sans Pro', sans-serif;
+                    margin: 0;
+                    padding: 20px;
+                    background: transparent;
+                }
+                .recorder-container {
+                    padding: 1.5rem;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    border-radius: 15px;
+                    text-align: center;
+                }
+                button {
+                    font-size: 16px;
+                    padding: 12px 24px;
+                    margin: 5px;
+                    border: none;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-weight: 600;
+                    transition: all 0.3s;
+                }
+                #startBtn {
+                    background-color: #ff4b4b;
+                    color: white;
+                }
+                #startBtn:hover:not(:disabled) {
+                    background-color: #ff3333;
+                    transform: scale(1.05);
+                }
+                #stopBtn {
+                    background-color: #262730;
+                    color: white;
+                }
+                #stopBtn:hover:not(:disabled) {
+                    background-color: #1a1a24;
+                    transform: scale(1.05);
+                }
+                button:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
+                }
+                #status {
+                    margin-top: 15px;
+                    font-size: 18px;
+                    color: white;
+                    font-weight: 500;
+                }
+                audio {
+                    width: 100%;
+                    margin-top: 15px;
+                    border-radius: 8px;
+                }
+                .pulse {
+                    animation: pulse 1.5s infinite;
+                }
+                @keyframes pulse {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.5; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="recorder-container">
+                <button id="startBtn" onclick="startRecording()">🎙️ Start Recording</button>
+                <button id="stopBtn" onclick="stopRecording()" disabled>⏹️ Stop Recording</button>
+                <div id="status">Ready to record</div>
+                <audio id="audio" controls style="display:none;"></audio>
+            </div>
+            
+            <script>
+                let mediaRecorder;
+                let audioChunks = [];
+                let startTime;
+                let timerInterval;
                 
-                mediaRecorder.addEventListener("dataavailable", event => {
-                    audioChunks.push(event.data);
-                });
-                
-                mediaRecorder.addEventListener("stop", () => {
-                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                    const audioUrl = URL.createObjectURL(audioBlob);
-                    const audioPlayback = document.getElementById('audioPlayback');
-                    audioPlayback.src = audioUrl;
-                    audioPlayback.style.display = 'block';
-                    
-                    // Convert to base64 and store
-                    const reader = new FileReader();
-                    reader.readAsDataURL(audioBlob);
-                    reader.onloadend = function() {
-                        const base64data = reader.result;
-                        // Store in session storage for Streamlit to access
-                        sessionStorage.setItem('recordedAudio', base64data);
-                        document.getElementById('recordingStatus').innerHTML = '✅ Recording saved! Refresh page to transcribe.';
+                async function startRecording() {
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        mediaRecorder = new MediaRecorder(stream);
+                        audioChunks = [];
+                        startTime = Date.now();
+                        
+                        mediaRecorder.ondataavailable = (event) => {
+                            audioChunks.push(event.data);
+                        };
+                        
+                        mediaRecorder.onstop = () => {
+                            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                            const audioUrl = URL.createObjectURL(audioBlob);
+                            const audioElement = document.getElementById('audio');
+                            audioElement.src = audioUrl;
+                            audioElement.style.display = 'block';
+                            
+                            // Create download link
+                            const a = document.createElement('a');
+                            a.href = audioUrl;
+                            a.download = 'recording_' + Date.now() + '.webm';
+                            
+                            document.getElementById('status').innerHTML = 
+                                '✅ Recording complete! <a href="' + audioUrl + '" download="recording.webm" style="color: #fff; text-decoration: underline;">Download</a> and upload above to transcribe';
+                            
+                            stream.getTracks().forEach(track => track.stop());
+                        };
+                        
+                        mediaRecorder.start();
+                        document.getElementById('startBtn').disabled = true;
+                        document.getElementById('stopBtn').disabled = false;
+                        
+                        // Update timer
+                        timerInterval = setInterval(() => {
+                            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                            const minutes = Math.floor(elapsed / 60);
+                            const seconds = elapsed % 60;
+                            document.getElementById('status').innerHTML = 
+                                '<span class="pulse">🔴 Recording: ' + 
+                                String(minutes).padStart(2, '0') + ':' + 
+                                String(seconds).padStart(2, '0') + '</span>';
+                        }, 1000);
+                        
+                    } catch (err) {
+                        document.getElementById('status').innerHTML = 
+                            '❌ Error: ' + err.message + '<br><small>Please allow microphone access</small>';
+                        console.error('Recording error:', err);
                     }
-                    
-                    stream.getTracks().forEach(track => track.stop());
-                });
+                }
                 
-                mediaRecorder.start();
-                document.getElementById('startRecord').disabled = true;
-                document.getElementById('stopRecord').disabled = false;
-                document.getElementById('recordingStatus').innerHTML = '🔴 Recording... Speak now!';
-                
-                // Update timer
-                const timerInterval = setInterval(() => {
+                function stopRecording() {
                     if (mediaRecorder && mediaRecorder.state === 'recording') {
-                        const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
-                        document.getElementById('recordingStatus').innerHTML = `🔴 Recording: ${elapsed}s`;
-                    } else {
+                        mediaRecorder.stop();
                         clearInterval(timerInterval);
+                        document.getElementById('startBtn').disabled = false;
+                        document.getElementById('stopBtn').disabled = true;
                     }
-                }, 1000);
-                
-            } catch (err) {
-                document.getElementById('recordingStatus').innerHTML = '❌ Error: ' + err.message + '<br>Please allow microphone access.';
-            }
-        }
+                }
+            </script>
+        </body>
+        </html>
+        """
         
-        function stopRecording() {
-            if (mediaRecorder && mediaRecorder.state === 'recording') {
-                mediaRecorder.stop();
-                document.getElementById('startRecord').disabled = false;
-                document.getElementById('stopRecord').disabled = true;
-            }
-        }
-        </script>
-        """, unsafe_allow_html=True)
+        html(audio_recorder_html, height=250)
         
-        st.info("💡 Click 'Start Recording', speak clearly, then click 'Stop'. The recording will be ready to transcribe!")
+        st.info("""
+        **How to use:**
+        1. Click 'Start Recording' and allow microphone access
+        2. Speak clearly into your microphone
+        3. Click 'Stop Recording' when done
+        4. Download the recording and upload it above to transcribe
+        """)
         
         st.markdown("---")
         st.subheader("📊 Quick Stats")
