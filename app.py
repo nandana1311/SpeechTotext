@@ -307,17 +307,88 @@ def main():
                             """)
     
     with col2:
-        st.subheader("🎙️ Record Audio (Optional)")
-        st.info("💡 **Note:** Microphone recording requires additional setup and may not work in all environments. Upload pre-recorded files for best results.")
+        st.subheader("🎙️ Record Audio")
         
+        # Browser-based audio recording
         st.markdown("""
-        To use microphone recording:
-        1. Ensure PyAudio is installed
-        2. Grant microphone permissions
-        3. Use the command-line version of this tool
+        <div style="padding: 1rem; background-color: #1e1e1e; border-radius: 10px; margin-bottom: 1rem;">
+            <button id="startRecord" onclick="startRecording()" style="background-color: #ff4b4b; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; margin-right: 10px;">
+                🎙️ Start Recording
+            </button>
+            <button id="stopRecord" onclick="stopRecording()" disabled style="background-color: #666; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px;">
+                ⏹️ Stop Recording
+            </button>
+            <div id="recordingStatus" style="margin-top: 10px; color: #aaa;"></div>
+            <audio id="audioPlayback" controls style="width: 100%; margin-top: 10px; display: none;"></audio>
+        </div>
         
-        For web deployment, file upload is the recommended method.
-        """)
+        <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        let recordingStartTime;
+        
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                recordingStartTime = Date.now();
+                
+                mediaRecorder.addEventListener("dataavailable", event => {
+                    audioChunks.push(event.data);
+                });
+                
+                mediaRecorder.addEventListener("stop", () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    const audioPlayback = document.getElementById('audioPlayback');
+                    audioPlayback.src = audioUrl;
+                    audioPlayback.style.display = 'block';
+                    
+                    // Convert to base64 and store
+                    const reader = new FileReader();
+                    reader.readAsDataURL(audioBlob);
+                    reader.onloadend = function() {
+                        const base64data = reader.result;
+                        // Store in session storage for Streamlit to access
+                        sessionStorage.setItem('recordedAudio', base64data);
+                        document.getElementById('recordingStatus').innerHTML = '✅ Recording saved! Refresh page to transcribe.';
+                    }
+                    
+                    stream.getTracks().forEach(track => track.stop());
+                });
+                
+                mediaRecorder.start();
+                document.getElementById('startRecord').disabled = true;
+                document.getElementById('stopRecord').disabled = false;
+                document.getElementById('recordingStatus').innerHTML = '🔴 Recording... Speak now!';
+                
+                // Update timer
+                const timerInterval = setInterval(() => {
+                    if (mediaRecorder && mediaRecorder.state === 'recording') {
+                        const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+                        document.getElementById('recordingStatus').innerHTML = `🔴 Recording: ${elapsed}s`;
+                    } else {
+                        clearInterval(timerInterval);
+                    }
+                }, 1000);
+                
+            } catch (err) {
+                document.getElementById('recordingStatus').innerHTML = '❌ Error: ' + err.message + '<br>Please allow microphone access.';
+            }
+        }
+        
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                document.getElementById('startRecord').disabled = false;
+                document.getElementById('stopRecord').disabled = true;
+            }
+        }
+        </script>
+        """, unsafe_allow_html=True)
+        
+        st.info("💡 Click 'Start Recording', speak clearly, then click 'Stop'. The recording will be ready to transcribe!")
         
         st.markdown("---")
         st.subheader("📊 Quick Stats")
@@ -326,7 +397,7 @@ def main():
         if uploaded_file:
             st.success("✅ File uploaded successfully")
         else:
-            st.warning("⏳ Waiting for file upload")
+            st.warning("⏳ Waiting for file upload or recording")
     
     # Footer
     st.markdown("---")
