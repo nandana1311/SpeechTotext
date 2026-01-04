@@ -63,10 +63,10 @@ st.markdown("""
     
     /* Upload section */
     .upload-section {
-        background: white;
+        background: #1e1e1e;
         padding: 2rem;
         border-radius: 20px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         margin-bottom: 2rem;
     }
     
@@ -75,17 +75,35 @@ st.markdown("""
         margin-bottom: 1.5rem;
     }
     
+    .stSelectbox > div > div {
+        background: #2d2d2d;
+        border: 1px solid #404040;
+        color: #ffffff;
+    }
+    
     /* File uploader */
     [data-testid="stFileUploader"] {
-        background: #f8f9fa;
+        background: #2d2d2d;
         padding: 2rem;
         border-radius: 15px;
-        border: 2px dashed #d0d0d0;
+        border: 2px dashed #505050;
     }
     
     [data-testid="stFileUploader"]:hover {
         border-color: #667eea;
-        background: #f5f7ff;
+        background: #363636;
+    }
+    
+    [data-testid="stFileUploader"] section {
+        border: none;
+    }
+    
+    [data-testid="stFileUploader"] section > div {
+        color: #ffffff;
+    }
+    
+    [data-testid="stFileUploader"] small {
+        color: #a0a0a0;
     }
     
     /* Buttons */
@@ -116,7 +134,7 @@ st.markdown("""
     
     /* Results section */
     .result-box {
-        background: #f8f9fa;
+        background: #2d2d2d;
         padding: 2rem;
         border-radius: 15px;
         margin-top: 2rem;
@@ -124,15 +142,22 @@ st.markdown("""
     
     /* Text area */
     .stTextArea textarea {
+        background: #2d2d2d;
+        color: #ffffff;
         border-radius: 12px;
-        border: 2px solid #e0e0e0;
+        border: 2px solid #404040;
         font-size: 1rem;
         line-height: 1.6;
     }
     
     .stTextArea textarea:focus {
         border-color: #667eea;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        background: #363636;
+    }
+    
+    .stTextArea label {
+        color: #ffffff;
     }
     
     /* Metrics */
